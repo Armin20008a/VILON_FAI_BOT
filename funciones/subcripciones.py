@@ -26,16 +26,10 @@ Esperamos que hayas descansado bien. Que este nuevo día te traiga mucha alegrí
 Nuestra sala siempre está abierta para ti 🤗
 https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c64c"""
 
-        self.mensaje_noche = """🌟 ¡Hola! ¿Ya visitaste nuestra sala hoy? 🌟
+        self.mensaje_noche = """🌟 ¡Hola! Buenas noches ¿Ya visitaste nuestra sala hoy? 🌟
 
 ¡Ven a divertirte con nosotros!
 https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c64c"""
-        
-        # Horarios para mensajes (en UTC-5, hora Colombia)
-        self.horarios_mensajes = [
-            (time(6, 0), self.mensaje_manana),
-            (time(22, 50), self.mensaje_noche),
-        ]
         
     def cargar_suscriptores(self) -> Dict:
         """Carga la lista de suscriptores del archivo"""
@@ -162,6 +156,26 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
                 if mensaje == "msg":
                     await bot.highrise.send_message(id_conversacion, "Por favor, ingresa el mensaje que quieres enviar a todos los suscriptores:")
                     self.esperando_mensaje_masivo[id_usuario] = True
+                elif mensaje == "masivo":
+                    menu_masivo = """
+                    Selecciona el mensaje a enviar:
+                    1 - Mensaje de buenos días
+                    2 - Mensaje de noche
+                    """
+                    await bot.highrise.send_message(id_conversacion, menu_masivo)
+                    self.esperando_mensaje_masivo[id_usuario] = "seleccion"
+                elif self.esperando_mensaje_masivo.get(id_usuario) == "seleccion":
+                    if mensaje == "1":
+                        await self.enviar_mensaje_masivo(bot, self.mensaje_manana)
+                        await bot.highrise.send_message(id_conversacion, "✅ Mensaje de buenos días enviado a todos los suscriptores.")
+                    elif mensaje == "2":
+                        await self.enviar_mensaje_masivo(bot, self.mensaje_noche)
+                        await bot.highrise.send_message(id_conversacion, "✅ Mensaje de noche enviado a todos los suscriptores.")
+                    else:
+                        await bot.highrise.send_message(id_conversacion, "❌ Opción no válida. Por favor, selecciona 1 o 2.")
+                        return
+                    self.esperando_mensaje_masivo[id_usuario] = False
+                    await self.manejar_mensaje_admin(bot, id_usuario, id_conversacion)
                 elif mensaje == "listsub":
                     if not self.suscriptores["suscriptores"]:
                         await bot.highrise.send_message(id_conversacion, "📋 No hay suscriptores registrados aún.")
@@ -307,7 +321,8 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
         🌟 ¡Bienvenido al Panel de Administración! 🌟
         
         Comandos disponibles:
-        msg - Enviar mensaje masivo a suscriptores
+        msg - Enviar mensaje masivo personalizado
+        masivo - Enviar mensaje predefinido (mañana/noche)
         listsub - Ver lista de suscriptores
         listadm - Ver lista de administradores
         addadm - Añadir nuevo administrador (Solo Joshe11)
@@ -345,28 +360,3 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
                 
             except Exception as e:
                 print(f"❌ Error al enviar mensaje a {username}: {e}")
-
-    async def iniciar_mensajes_automaticos(self, bot):
-        """Inicia el envío de mensajes automáticos"""
-        while True:
-            try:
-                # Obtener hora actual en UTC-5 (Colombia)
-                tz = pytz.timezone('America/Bogota')
-                ahora = datetime.now(tz)
-                hora_actual = ahora.time()
-                
-                # Verificar si es hora de enviar mensaje
-                for hora_mensaje in self.horarios_mensajes:
-                    if (hora_actual.hour == hora_mensaje.hour and 
-                        hora_actual.minute == hora_mensaje.minute):
-                        print(f"📨 Enviando mensaje automático - {ahora.strftime('%Y-%m-%d %H:%M:%S')}")
-                        await self.enviar_mensaje_masivo(bot, self.mensaje_diario)
-                        # Esperar 61 segundos para evitar mensajes duplicados
-                        await asyncio.sleep(61)
-                
-                # Esperar 30 segundos antes de la siguiente verificación
-                await asyncio.sleep(30)
-                
-            except Exception as e:
-                print(f"Error en mensajes automáticos: {e}")
-                await asyncio.sleep(60)
