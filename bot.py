@@ -11,6 +11,7 @@ from highrise import BaseBot, Position, SessionMetadata, User, CurrencyItem, Ite
 # Local imports
 from funciones.loop import emote, loop_emote, stop_loop, loop, check_position_and_emote
 from funciones.teleport import teleporter
+from funciones.subcripciones import AdministradorSuscripciones
 
 class Bot(BaseBot):
     # Constantes de clase
@@ -67,6 +68,7 @@ class Bot(BaseBot):
         self.user_conversations = {}
         self.active_translation_users = {}
         self.bot_id = None
+        self.admin_suscripciones = AdministradorSuscripciones()
 
     async def on_start(self, session_metadata: SessionMetadata) -> None:
         print("INICIO")
@@ -74,47 +76,7 @@ class Bot(BaseBot):
         await self.highrise.chat("¡Bot iniciado!")
         asyncio.create_task(self.repeat_emote())
         asyncio.create_task(self.send_information())
-
-    async def on_user_join(self, user: User, position) -> None:
-        """Maneja la entrada de usuarios a la sala."""
-        try:
-            print(f"{user.username} ENTRÓ.")
-            wm = ["✨",
-                  "🌺", 
-                  "🌟", 
-                  "🌴"]
-            T = random.choice(wm)
-            await self.highrise.chat(f"Bienvenid@ @{user.username} {T}")
-            await self.show_help(user)
-        except Exception as e:
-            print(f"Error en on_user_join: {e}")
-
-    async def on_user_leave(self, user: User) -> None:
-        """Maneja la salida de usuarios de la sala."""
-        while True:
-            try:   
-                goodbye_message = random.choice(self.GOODBYE_MESSAGES)
-                await self.highrise.chat(f"\nSalió: @{user.username}\n{goodbye_message}")
-                break  # Si el mensaje se envió correctamente, salir del bucle
-                
-            except Exception as e:
-                if "connection with ID:" in str(e):
-                    await asyncio.sleep(5)
-                    continue  # Reintentar si es error de conexión
-                else:
-                    print(f"Error en on_user_leave: {e}")
-                    break  # Salir si es otro tipo de error
-
-    async def repeat_emote(self) -> None:
-        while True:
-            try:
-                bailes = ["dance-weird", "idle-floating", "emote-timejump", "emote-robot", 
-                         "emote-shrink", "emote-gordonshuffle"]
-                await asyncio.sleep(5.55)
-                await self.highrise.send_emote(random.choice(bailes))
-            except Exception as e:
-                await asyncio.sleep(5)
-                continue
+        asyncio.create_task(self.admin_suscripciones.iniciar_mensajes_automaticos(self))
 
     async def on_chat(self, user: User, message: str) -> None:
         """
@@ -181,7 +143,76 @@ class Bot(BaseBot):
         except Exception as e:
             await self.highrise.chat(f"Error en on_chat: {e}")
 
-    # Métodos de manejo de comandos específicos
+    async def on_message(self, user_id: str, conversation_id: str, is_new_conversation: bool) -> None:
+        """Maneja los mensajes privados recibidos por el bot"""
+        try:
+            # Obtener el mensaje
+            response = await self.highrise.get_messages(conversation_id)
+            if not response.messages:  # Si no hay mensajes
+                return
+                
+            message = response.messages[0].content
+            
+            # Obtener información del usuario usando get_room_users
+            room_users = await self.highrise.get_room_users()
+            user_info = None
+            for user, pos in room_users.content:
+                if user.id == user_id:
+                    user_info = user
+                    break
+            
+            print(f"Mensaje recibido de ID: {user_id}")  # Debug
+            print(f"Contenido del mensaje: {message}")  # Debug
+            
+            # Manejar el mensaje a través del administrador de suscripciones
+            await self.admin_suscripciones.manejar_mensaje(self, user_id, conversation_id, message)
+            
+        except Exception as e:
+            print(f"Error en on_message: {e}")
+            import traceback
+            traceback.print_exc()
+
+    async def on_user_join(self, user: User, position) -> None:
+        """Maneja la entrada de usuarios a la sala."""
+        try:
+            print(f"{user.username} ENTRÓ.")
+            wm = ["✨",
+                  "🌺", 
+                  "🌟", 
+                  "🌴"]
+            T = random.choice(wm)
+            await self.highrise.chat(f"Bienvenid@ @{user.username} {T}")
+            await self.show_help(user)
+        except Exception as e:
+            print(f"Error en on_user_join: {e}")
+
+    async def on_user_leave(self, user: User) -> None:
+        """Maneja la salida de usuarios de la sala."""
+        while True:
+            try:   
+                goodbye_message = random.choice(self.GOODBYE_MESSAGES)
+                await self.highrise.chat(f"\nSalió: @{user.username}\n{goodbye_message}")
+                break  # Si el mensaje se envió correctamente, salir del bucle
+                
+            except Exception as e:
+                if "connection with ID:" in str(e):
+                    await asyncio.sleep(5)
+                    continue  # Reintentar si es error de conexión
+                else:
+                    print(f"Error en on_user_leave: {e}")
+                    break  # Salir si es otro tipo de error
+
+    async def repeat_emote(self) -> None:
+        while True:
+            try:
+                bailes = ["dance-weird", "idle-floating", "emote-timejump", "emote-robot", 
+                         "emote-shrink", "emote-gordonshuffle"]
+                await asyncio.sleep(5.55)
+                await self.highrise.send_emote(random.choice(bailes))
+            except Exception as e:
+                await asyncio.sleep(5)
+                continue
+
     async def handle_wallet_command(self, user: User) -> None:
         """Maneja el comando de wallet (solo para moderadores)."""
         if user.username != "Joshe11":
@@ -364,7 +395,7 @@ class Bot(BaseBot):
         """Envía información periódica a la sala."""
         while True:
             try:
-                await asyncio.sleep(210)
+                await asyncio.sleep(300)
                 messages = [
                     "¡Escribe ' /ayuda ' para ver todos los comandos disponibles!",
                     "¡Usa ' /info ' para conocer más sobre el bot!",
@@ -375,7 +406,8 @@ class Bot(BaseBot):
                     "¡En Paseito apoyamos el talento local en Highrise.🎤\nSi desea promocionar canciones en nuestra emisora, escríbale a @Joshe11!\n",
                     "¡Envíe 5g al Bot y reciba un poema especial como agradecimiento!\n",
                     "¡Para conocer los emotes disponibles, revise la descripción del bot!\n",
-                    "¡No olvides revisar la descripción de la sala para más detalles y sorpresas!\n"
+                    "¡No olvides revisar la descripción de la sala para más detalles y sorpresas!\n",
+                    "¡Escriba un mensaje al DM (privado) del bot para suscribirse a nuestras notificaciones!\n"
                 ]
                 await self.highrise.chat(random.choice(messages))
             except Exception as e:
@@ -422,6 +454,7 @@ class Bot(BaseBot):
             "• /emotes - Lista de emotes disponibles\n"
             "• /reglas - Reglas de la sala\n"
             "• /idiomas - Idiomas disponibles"
+            "• Escriba un mensaje al DM (privado) del bot para suscribirse a nuestras notificaciones"
         )
         await self.highrise.send_whisper(user.id, help_text2)
         await asyncio.sleep(0.5)
