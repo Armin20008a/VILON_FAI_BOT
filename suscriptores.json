@@ -1,0 +1,16 @@
+{
+    "suscriptores": {
+        "Joshe11": {
+            "id": "62b0bd2242167d511940de44",
+            "conv_id": "1_on_1:62b0bd2242167d511940de44:665e310f16d318b8308f76d0"
+        },
+        "LUDO_CONSTRUCTOR": {
+            "id": "67313f6923277671eb5cec59",
+            "conv_id": "1_on_1:665e310f16d318b8308f76d0:67313f6923277671eb5cec59"
+        }
+    },
+    "admin": "Joshe11",
+    "admins": {
+        "Joshe11": "62b0bd2242167d511940de44"
+    }
+}
