@@ -76,7 +76,6 @@ class Bot(BaseBot):
         await self.highrise.chat("¡Bot iniciado!")
         asyncio.create_task(self.repeat_emote())
         asyncio.create_task(self.send_information())
-        asyncio.create_task(self.admin_suscripciones.iniciar_mensajes_automaticos(self))
 
     async def on_chat(self, user: User, message: str) -> None:
         """
