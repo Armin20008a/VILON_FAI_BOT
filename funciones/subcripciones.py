@@ -145,9 +145,19 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
             
             # Si estamos esperando un mensaje masivo de este usuario
             elif self.esperando_mensaje_masivo.get(id_usuario, False):
-                await self.enviar_mensaje_masivo(bot, mensaje)
+                if self.esperando_mensaje_masivo.get(id_usuario) == "seleccion":
+                    # Si estamos esperando la selección del mensaje predefinido
+                    tipo_mensaje = await self.mensajes_masivos_predefinidos(bot, mensaje)
+                    if tipo_mensaje:
+                        await bot.highrise.send_message(id_conversacion, f"✅ Mensaje de {tipo_mensaje} enviado a todos los suscriptores.")
+                    else:
+                        await bot.highrise.send_message(id_conversacion, "❌ Opción no válida. Por favor, selecciona 1 o 2.")
+                else:
+                    # Si es un mensaje personalizado
+                    await self.enviar_mensaje_masivo(bot, mensaje)
+                    await bot.highrise.send_message(id_conversacion, "✅ Mensaje enviado a todos los suscriptores.")
+                
                 self.esperando_mensaje_masivo[id_usuario] = False
-                await bot.highrise.send_message(id_conversacion, "✅ Mensaje enviado a todos los suscriptores.")
                 await self.manejar_mensaje_admin(bot, id_usuario, id_conversacion)
                 return
             
@@ -165,20 +175,16 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
                     await bot.highrise.send_message(id_conversacion, menu_masivo)
                     self.esperando_mensaje_masivo[id_usuario] = "seleccion"
                 elif self.esperando_mensaje_masivo.get(id_usuario) == "seleccion":
-                    if mensaje == "1":
-                        await self.enviar_mensaje_masivo(bot, self.mensaje_manana)
-                        await bot.highrise.send_message(id_conversacion, "✅ Mensaje de buenos días enviado a todos los suscriptores.")
-                    elif mensaje == "2":
-                        await self.enviar_mensaje_masivo(bot, self.mensaje_noche)
-                        await bot.highrise.send_message(id_conversacion, "✅ Mensaje de noche enviado a todos los suscriptores.")
+                    tipo_mensaje = await self.mensajes_masivos_predefinidos(bot, mensaje)
+                    if tipo_mensaje:
+                        await bot.highrise.send_message(id_conversacion, f"✅ Mensaje de {tipo_mensaje} enviado a todos los suscriptores.")
                     else:
                         await bot.highrise.send_message(id_conversacion, "❌ Opción no válida. Por favor, selecciona 1 o 2.")
-                        return
                     self.esperando_mensaje_masivo[id_usuario] = False
                     await self.manejar_mensaje_admin(bot, id_usuario, id_conversacion)
                 elif mensaje == "listsub":
                     if not self.suscriptores["suscriptores"]:
-                        await bot.highrise.send_message(id_conversacion, "📋 No hay suscriptores registrados aún.")
+                        await bot.highrise.send_message(id_conversacion, " No hay suscriptores registrados aún.")
                     else:
                         total = len(self.suscriptores["suscriptores"])
                         mensaje = f"📋 Lista de Suscriptores ({total}):\n"
@@ -344,12 +350,13 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
                     print(f"⚠️ No hay ID de conversación para {username}")
                     continue
                 
-                # Si el mensaje es el mensaje_diario, enviarlo tal cual
-                if mensaje == self.mensaje_diario:
+                # Si es un mensaje automático o predefinido
+                if mensaje in [self.mensaje_manana, self.mensaje_noche]:
                     mensaje_completo = mensaje
-                else:
-                    # Si es un mensaje personalizado del admin, agregar la invitación
+                # Si es un mensaje personalizado del admin
+                elif isinstance(mensaje, str):
                     mensaje_completo = f"""📢 Anuncio:
+                    
 {mensaje}
 
 Nos encantaría verte por nuestra sala, siempre es un gusto compartir contigo ✨
@@ -360,3 +367,29 @@ https://high.rs/room?id=6694de2ee40b58ae179d8ddf&invite_id=6744912d5edd6cffc721c
                 
             except Exception as e:
                 print(f"❌ Error al enviar mensaje a {username}: {e}")
+
+    async def mensajes_masivos_predefinidos(self, bot, opcion: str) -> None:
+        """Maneja el envío de mensajes predefinidos"""
+        try:
+            if opcion == "1":
+                mensaje = self.mensaje_manana
+                tipo = "buenos días"
+            elif opcion == "2":
+                mensaje = self.mensaje_noche
+                tipo = "noche"
+            else:
+                return None  
+            # Enviar el mensaje predefinido a todos los suscriptores
+            for username, datos in self.suscriptores["suscriptores"].items():
+                try:
+                    if datos["conv_id"] is None:
+                        print(f"⚠️ No hay ID de conversación para {username}")
+                        continue         
+                    await bot.highrise.send_message(datos["conv_id"], mensaje)
+                    print(f"✅ Mensaje de {tipo} enviado a {username}")            
+                except Exception as e:
+                    print(f"❌ Error al enviar mensaje a {username}: {e}")   
+            return tipo
+        except Exception as e:
+            print(f"Error en mensajes_masivos_predefinidos: {e}")
+            return None

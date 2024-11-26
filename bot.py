@@ -160,10 +160,7 @@ class Bot(BaseBot):
                     user_info = user
                     break
             
-            print(f"Mensaje recibido de ID: {user_id}")  # Debug
-            print(f"Contenido del mensaje: {message}")  # Debug
-            
-            # Manejar el mensaje a través del administrador de suscripciones
+            print(f"👤 {user_info.username} escribió: {message}")
             await self.admin_suscripciones.manejar_mensaje(self, user_id, conversation_id, message)
             
         except Exception as e:
