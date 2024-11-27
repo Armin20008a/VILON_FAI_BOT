@@ -109,6 +109,12 @@ class Bot(BaseBot):
                     await self.highrise.chat("Función solo disponible para moderadores.")
                     return
                 await self.handle_wallet_command(user)
+            elif message_lower.startswith("users"):
+                privileges = await self.highrise.get_room_privilege(user.id)
+                if user.username != "Joshe11" and not (privileges.moderator or privileges.designer):
+                    await self.highrise.chat("Función solo disponible para moderadores.")
+                    return
+                await self.list_users()
             elif message_lower.startswith("all"):
                 privileges = await self.highrise.get_room_privilege(user.id)
                 if user.username != "Joshe11" and not (privileges.moderator or privileges.designer):
@@ -173,8 +179,7 @@ class Bot(BaseBot):
         try:
             print(f"{user.username} ENTRÓ.")
             wm = ["✨",
-                  "🌺", 
-                  "🌟", 
+                  "🌺",  
                   "🌴"]
             T = random.choice(wm)
             await self.highrise.chat(f"Bienvenid@ @{user.username} {T}")
@@ -197,6 +202,17 @@ class Bot(BaseBot):
                 else:
                     print(f"Error en on_user_leave: {e}")
                     break  # Salir si es otro tipo de error
+
+    async def list_users(self: BaseBot) -> None:
+        room_users = (await self.highrise.get_room_users()).content
+        user_info = []
+        for user, position in room_users:
+            if hasattr(position, 'x') and hasattr(position, 'y') and hasattr(position, 'z'):
+                user_info.append(f"Username: {user.username}, \nID: {user.id}, \nPosition: x={position.x}, y={position.y}, z={position.z}\n")
+            else:
+                user_info.append(f"Username: {user.username}, \nID: {user.id}, \nPosition: (Anchor Position)\n")
+        for info in user_info:
+            print(info)
 
     async def repeat_emote(self) -> None:
         while True:
@@ -449,7 +465,7 @@ class Bot(BaseBot):
             "• /info - Información del bot\n"
             "• /emotes - Lista de emotes disponibles\n"
             "• /reglas - Reglas de la sala\n"
-            "• /idiomas - Idiomas disponibles"
+            "• /idiomas - Idiomas disponibles\n"
             "• Escriba un mensaje al DM (privado) del bot para suscribirse a nuestras notificaciones"
         )
         await self.highrise.send_whisper(user.id, help_text2)

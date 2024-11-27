@@ -13,6 +13,7 @@ PREDEFINED_COORDINATES = {
     "paseito9": Position(11.0, 2.25, 9.0),
     "paseito10": Position(15.5, 12.0, 8.0),
     "paseito11": Position(16.5, 18.5, 2.0),
+    "paseitodj": Position(14.5, 18.5, 4.5),
 }
 
 
