@@ -8,8 +8,8 @@ load_dotenv()
 
 bot_file_name = "bot"
 bot_class_name = "Bot"
-room_id = os.getenv("ROOM_ID")
-bot_token = os.getenv("BOT_TOKEN")
+room_id = os.getenv("660e6448818d797101c5d230")
+bot_token = os.getenv("have7e956310cd1600ac49d0d014eb1a13c508f93507f8519c855156c87f4b7c55ad")
 
 # Agregamos verificación
 if not room_id or not bot_token:
