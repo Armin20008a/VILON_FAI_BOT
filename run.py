@@ -1,29 +1,49 @@
+from flask import Flask
+from threading import Thread
 from highrise.__main__ import *
 import time
-from dotenv import load_dotenv
-import os
-import traceback  # Agregamos esto
 
-load_dotenv()
 
-bot_file_name = "bot"
-bot_class_name = "Bot"
-room_id = os.getenv("ROOM_ID")
-bot_token = os.getenv("BOT_TOKEN")
+class WebServer():
 
-# Agregamos verificación
-if not room_id or not bot_token:
-    print("Error: ROOM_ID or BOT_TOKEN not found in environment variables")
-    exit(1)
+  def __init__(self):
+    self.app = Flask(__name__)
 
-my_bot = BotDefinition(getattr(import_module(bot_file_name), bot_class_name)(), room_id, bot_token)
+    @self.app.route('/')
+    def index() -> str:
+      return "Funcionando"
 
-while True:
-    try:
-        definitions = [my_bot]
-        arun(main(definitions))
-    except Exception as e:
-        print(f"An exception occurred: {e}")
-        print("Traceback:")
-        print(traceback.format_exc())  # Esto mostrará más detalles del error
+  def run(self) -> None:
+    self.app.run(host='0.0.0.0', port=8080)
+
+  def keep_alive(self):
+    t = Thread(target=self.run)
+    t.start()
+
+
+class RunBot():
+  room_id = "660e6448818d797101c5d230"
+  bot_token = "7e956310cd1600ac49d0d014eb1a13c508f93507f8519c855156c87f4b7c55ad"
+  bot_file = "main"
+  bot_class = "Bot"
+
+  def __init__(self) -> None:
+    self.definitions = [
+        BotDefinition(
+            getattr(import_module(self.bot_file), self.bot_class)(),
+            self.room_id, self.bot_token)
+    ]  # More BotDefinition classes can be added to the definitions list
+
+  def run_loop(self) -> None:
+    while True:
+      try:
+        arun(main(self.definitions))
+
+      except Exception as e:
+        print("Error: ", e)
         time.sleep(5)
+
+if __name__ == "__main__":
+  WebServer().keep_alive()
+
+  RunBot().run_loop()
